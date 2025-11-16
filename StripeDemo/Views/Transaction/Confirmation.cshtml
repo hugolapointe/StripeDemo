@@ -1,0 +1,37 @@
+﻿@{
+    ViewBag.Title = "Confirmation";
+}
+
+<section class="row bg-light rounded">
+    <div class="col p-2">
+        <h2>Confirmation</h2>
+        <p>Your purchase was confirmed! Transaction #@ViewData["TransactionId"]!</p> <!-- Afficher l'ID de la transaction -->
+
+        <div class="float-right">
+            <span class="text-muted">You will be redirected in <span id="countdown"></span> seconds...</span>
+            <button asp-controller="Home" asp-action="Index" class="btn btn-success">Return</button>
+        </div>
+    </div>
+</section>
+
+@section scripts {
+    <script>
+        $(document).ready(() => {
+            "use strict";
+
+            let timeSec = 5;
+            const countdownElement = $("#countdown");
+            countdownElement.text(timeSec);
+
+            const intervalId = setInterval(() => {
+                timeSec -= 1;
+                countdownElement.text(timeSec);
+
+                if (timeSec <= 0) {
+                    clearInterval(intervalId);
+                    window.location.href = "/"; // Redirection vers la page d'accueil après 5 secondes
+                }
+            }, 1000);
+        });
+    </script>
+}

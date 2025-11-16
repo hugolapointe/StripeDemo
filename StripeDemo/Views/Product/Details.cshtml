@@ -1,5 +1,5 @@
 ﻿@using StripeDemo.Models;
-@model ProductViewModels
+@model ProductDetails
 
 @inject IOptions<StripeOptions> StripeOptions;
 
@@ -57,64 +57,11 @@
 @section scripts {
     <script src="https://js.stripe.com/v3/"></script>
     <script src="~/lib/axios/axios.min.js"></script>
+    <script src="~/js/stripe-payment.js"></script>
 
     <script>
-        document.addEventListener("DOMContentLoaded", async () => {
-            const stripe = Stripe("@StripeOptions.Value.PublicKey");
-            const elements = stripe.elements();
-
-            // Création de l'élément de carte
-            const card = elements.create("card", { hidePostalCode: true });
-            card.mount("#credit-card");
-
-            // Gestion des erreurs de carte
-            card.on("change", event => {
-                const errorDiv = document.getElementById("card-errors");
-                errorDiv.textContent = event.error ? event.error.message : "";
-            });
-
-            // Soumission du formulaire de paiement
-            document.addEventListener("submit", async (event) => {
-                event.preventDefault();
-
-                // Communiquer avec le serveur pour créer l'intention de paiement
-                try {
-                    const { data } = await axios.post("/transaction/create-payment-intent", {
-                        CustomerName: document.getElementById("name").value,
-                        CustomerEmail: document.getElementById("email").value,
-                        ProductId: @Model.Id,
-                    });
-
-                    let transactionId = data.transactionId;
-                    let clientSecret = data.clientSecret;
-
-                    // Confirmer le paiement avec Stripe
-                    const result = await stripe.confirmCardPayment(clientSecret, {
-                        payment_method: { card: card }
-                        // D'autres informations peuvent être ajoutées ici
-                    });
-
-                    if (result.error) {
-                        // Afficher l'erreur à l'utilisateur
-                        const errorDiv = document.getElementById("card-errors");
-                        errorDiv.textContent = result.error.message;
-                        return;
-                    }
-
-                    await axios.post("/transaction/confirm-payment", {
-                        TransactionId: transactionId,
-                        PaymentIntentId: result.paymentIntent.id,
-                        PaymentMethodId: result.paymentIntent.PaymentMethodId
-                    });
-
-                    // Rediriger vers la page de confirmation avec l'ID de la transaction
-                    window.location.href = "/transaction/confirmation/" + transactionId;
-
-                } catch (error) {
-                    console.error(error);
-                    return;
-                }
-            });
+        document.addEventListener("DOMContentLoaded", () => {
+            initializeStripePayment("@StripeOptions.Value.PublicKey", @Model.Id);
         });
     </script>
 }

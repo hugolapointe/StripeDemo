@@ -1,115 +1,111 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
-using Stripe;
-
 using StripeDemo.Data;
+using StripeDemo.DTOs;
 using StripeDemo.Models;
+using StripeDemo.Services;
 using StripeDemo.ViewModels;
 
 namespace StripeDemo.Controllers;
 
 [Route("transaction")]
-public class TransactionController(IOptions<StripeOptions> stripeOptions, StoreContext context) : Controller {
-    private readonly IOptions<StripeOptions> StripeOptions = stripeOptions;
-    private readonly StoreContext Context = context;
+public class TransactionController(
+        IStripeService stripeService,
+        StoreContext context,
+        IOptions<StripeOptions> stripeOptions
+) : Controller {
+
 
     [HttpPost("create-payment-intent")]
-    public async Task<IActionResult> CreatePaymentIntent([FromBody] PaymentDetails paymentDetails) {
+    public async Task<IActionResult> CreatePaymentIntent(
+        [FromBody] CreatePaymentIntentRequest dto
+    ) {
+        
+        if (!ModelState.IsValid) {
+            return BadRequest(ModelState);
+        }
 
-        // Vérifier si le produit existe
-        var product = Context.Products.Find(paymentDetails.ProductId);
+        var product = await context.Products.FindAsync(dto.ProductId);
 
         if (product is null) {
             return NotFound();
         }
 
-        // Créer les options de paiement (Stripe.Net)
-        var options = new PaymentIntentCreateOptions {
-            Amount = (int)(product.Price * 100), // Stripe utilise les cents
-            Currency = "cad",
-            // Plus d'informations pourraient être ajoutées ici
-        };
+        var paymentIntent = await stripeService.CreatePaymentIntentAsync(
+            product.Price,
+            stripeOptions.Value.CurrencyCode
+        );
 
-        // Créer l'intention de paiement avec les options (Stripe.Net)
-        StripeConfiguration.ApiKey = StripeOptions.Value.SecretKey;
-        var service = new PaymentIntentService();
-        var paymentIntent = service.Create(options);
-
-        if(paymentIntent is null) {
-            return BadRequest();
-        }
-
-        // Créer une transaction (interne)
         var transaction = new Transaction(
-            paymentDetails.CustomerName, 
-            paymentDetails.CustomerEmail, 
-            product.Price, 
-            product.Id) {
-            PaymentIntentId = paymentIntent.Id
+            dto.CustomerName,
+            dto.CustomerEmail,
+            product.Price,
+            dto.ProductId) {
+            PaymentIntentId = paymentIntent.Id,
+            Currency = stripeOptions.Value.CurrencyCode
         };
 
-        // Enregistrer la transaction (interne)
-        Context.Transactions.Add(transaction);
-        await Context.SaveChangesAsync();
+        context.Transactions.Add(transaction);
+        await context.SaveChangesAsync();
 
-        // Retourner l'ID de la transaction et le clientSecret du PaymentIntent
         return Ok(new {
-            transactionId = transaction.Id, // Optionnel, mais utile pour nos besoins internes
-            clientSecret = paymentIntent.ClientSecret // Essentiel pour la confirmation de paiement de Stripe!
+            transactionId = transaction.Id,
+            clientSecret = paymentIntent.ClientSecret
         });
     }
 
-    [HttpPost("confirm-payment")]
-    public async Task<IActionResult> ConfirmPayment([FromBody] ConfirmPaymentDetails confirmPaymentDetails) {
 
-        // Récupérer la transaction associée à l'ID
-        var transaction = await Context.Transactions.FindAsync(confirmPaymentDetails.TransactionId);
+    [HttpPost("verify-payment")]
+    public async Task<IActionResult> VerifyPayment(
+        [FromBody] VerifyPaymentRequest dto
+    ) {
+        
+        if (!ModelState.IsValid) {
+            return BadRequest(ModelState);
+        }
 
-        // Vérifier si la transaction existe
-        if(transaction is null) {
+        var transaction = await context.Transactions.FindAsync(dto.TransactionId);
+
+        if (transaction is null) {
             return NotFound();
         }
 
-        // Vérifier si l'ID de paiement correspond à celui de la transaction
-        if(transaction.PaymentIntentId != confirmPaymentDetails.PaymentIntentId) {
+        if (transaction.PaymentIntentId != dto.PaymentIntentId) {
             return BadRequest();
         }
 
-        // Vérifier la confirmation du paiement (Stripe.Net)
-        StripeConfiguration.ApiKey = StripeOptions.Value.SecretKey;
-        var service = new PaymentIntentService();
+        var paymentIntent = await stripeService.GetPaymentIntentAsync(dto.PaymentIntentId);
 
-        var paymentIntent = service.Get(confirmPaymentDetails.PaymentIntentId);
-
-        // Mettre à jour la transaction (interne)
         transaction.Update(paymentIntent.Status);
+        await context.SaveChangesAsync();
 
-        if(paymentIntent is null || paymentIntent.Status != "succeeded") {
-            return BadRequest();
-        }
-
-        // Retourner l'ID de la transaction et le statut de la transaction
         return Ok(new {
             transactionId = transaction.Id,
-            status = transaction.Status
+            status = transaction.Status.ToString()
         });
     }
+
 
     [HttpGet("confirmation/{transactionId}")]
     public async Task<IActionResult> Confirmation(int transactionId) {
+        
+        var transaction = await context.Transactions.FindAsync(transactionId);
 
-        // Récupérer la transaction associée à l'ID
-        var transaction = await Context.Transactions.FindAsync(transactionId);
-
-        // Vérifier si la transaction existe
-        if(transaction is null) {
+        if (transaction is null) {
             return NotFound();
         }
 
-        // Retourner la vue de confirmation avec les détails de la transaction
-        ViewData["TransactionId"] = transaction.Id;
-        return View(transaction);
+        var viewModel = new ConfirmationDetails(
+            transaction.Id,
+            transaction.Name,
+            transaction.Email,
+            transaction.Amount,
+            transaction.Currency,
+            transaction.Status.ToString(),
+            transaction.DateCreated
+        );
+
+        return View(viewModel);
     }
 }

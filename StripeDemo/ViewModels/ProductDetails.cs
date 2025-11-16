@@ -1,6 +1,6 @@
 ﻿namespace StripeDemo.ViewModels;
 
-public record ProductViewModels(
+public record ProductDetails(
     int Id,
     string Name,
     string Description,

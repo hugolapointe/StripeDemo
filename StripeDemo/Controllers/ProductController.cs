@@ -5,23 +5,26 @@ using StripeDemo.ViewModels;
 
 namespace StripeDemo.Controllers;
 
+
 [Route("product")]
 public class ProductController(StoreContext context) : Controller {
-    private readonly StoreContext Context = context;
 
-    [HttpGet("details/{Id}")]
+
+    [HttpGet("details/{id}")]
     public IActionResult Details(int id) {
-        var product = Context.Products.Find(id);
+        var product = context.Products.Find(id);
 
         if (product is null) {
             return NotFound();
         }
 
-        return View(new ProductViewModels(
+        var viewModel = new ProductDetails(
             product.Id,
             product.Name,
             product.Description,
             product.Price
-        ));
+        );
+
+        return View(viewModel);
     }
 }

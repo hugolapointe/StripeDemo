@@ -1,37 +1,75 @@
-﻿@{
+﻿@model StripeDemo.ViewModels.ConfirmationDetails
+
+@{
     ViewBag.Title = "Confirmation";
 }
 
-<section class="row bg-light rounded">
-    <div class="col p-2">
-        <h2>Confirmation</h2>
-        <p>Your purchase was confirmed! Transaction #@ViewData["TransactionId"]!</p> <!-- Afficher l'ID de la transaction -->
+<section class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-body text-center p-5">
+                    <h2 class="mb-4">Confirmation de paiement</h2>
 
-        <div class="float-right">
-            <span class="text-muted">You will be redirected in <span id="countdown"></span> seconds...</span>
-            <button asp-controller="Home" asp-action="Index" class="btn btn-success">Return</button>
+                    @if (Model.Status == "Succeeded") {
+                        <div class="mb-4">
+                            <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                        </div>
+                        <div class="alert alert-success" role="alert">
+                            Paiement réussi !
+                        </div>
+                        <div class="mt-4">
+                            <p class="text-muted">
+                                Vous serez redirigé dans <span id="countdown">5</span> secondes...
+                            </p>
+                            <a href="/" class="btn btn-success">Retour à l'accueil</a>
+                        </div>
+
+                    } else {
+                        <div class="mb-4">
+                            <i class="bi bi-x-circle-fill text-danger" style="font-size: 4rem;"></i>
+                        </div>
+                        <div class="alert alert-danger" role="alert">
+                            Le paiement a échoué.
+                        </div>
+                        <a href="/" class="btn btn-primary">Retour à l'accueil</a>
+                    }
+
+                    <!-- Détails de la transaction -->
+                    <div class="mt-4 text-start bg-light p-3 rounded">
+                        <h5 class="mb-3">Détails de la transaction</h5>
+                        <ul class="list-unstyled">
+                            <li><strong>Transaction #:</strong> @Model.Id</li>
+                            <li><strong>Nom:</strong> @Model.Name</li>
+                            <li><strong>Email:</strong> @Model.Email</li>
+                            <li><strong>Montant:</strong> @Model.Amount.ToString("C") @Model.Currency.ToUpper()</li>
+                            <li><strong>Date:</strong> @Model.DateCreated.ToString("yyyy-MM-dd HH:mm:ss")</li>
+                            <li><strong>Statut:</strong> <strong>@Model.Status</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </section>
 
 @section scripts {
-    <script>
-        $(document).ready(() => {
-            "use strict";
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 
+    @if (Model.Status == "Succeeded") {
+        <script>
             let timeSec = 5;
-            const countdownElement = $("#countdown");
-            countdownElement.text(timeSec);
+            const countdownElement = document.getElementById("countdown");
 
             const intervalId = setInterval(() => {
                 timeSec -= 1;
-                countdownElement.text(timeSec);
+                countdownElement.textContent = timeSec;
 
                 if (timeSec <= 0) {
                     clearInterval(intervalId);
-                    window.location.href = "/"; // Redirection vers la page d'accueil après 5 secondes
+                    window.location.href = "/";
                 }
             }, 1000);
-        });
-    </script>
+        </script>
+    }
 }

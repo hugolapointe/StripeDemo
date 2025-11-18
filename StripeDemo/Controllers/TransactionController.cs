@@ -16,34 +16,25 @@ public class TransactionController(
         IOptions<StripeOptions> stripeOptions
 ) : Controller {
 
-
     [HttpPost("create-payment-intent")]
     public async Task<IActionResult> CreatePaymentIntent(
-        [FromBody] CreatePaymentIntentRequest dto
+        [FromBody] PaymentIntentRequest request
     ) {
         
         if (!ModelState.IsValid) {
             return BadRequest(ModelState);
         }
 
-        var product = await context.Products.FindAsync(dto.ProductId);
-
-        if (product is null) {
-            return NotFound();
-        }
-
         var paymentIntent = await stripeService.CreatePaymentIntentAsync(
-            product.Price,
+            request.Amount,
             stripeOptions.Value.CurrencyCode
         );
 
         var transaction = new Transaction(
-            dto.CustomerName,
-            dto.CustomerEmail,
-            product.Price,
-            dto.ProductId) {
-            PaymentIntentId = paymentIntent.Id,
-            Currency = stripeOptions.Value.CurrencyCode
+            request.CustomerName,
+            request.CustomerEmail,
+            request.Amount) {
+            PaymentIntentId = paymentIntent.Id
         };
 
         context.Transactions.Add(transaction);
@@ -58,24 +49,24 @@ public class TransactionController(
 
     [HttpPost("verify-payment")]
     public async Task<IActionResult> VerifyPayment(
-        [FromBody] VerifyPaymentRequest dto
+        [FromBody] VerifyPaymentRequest request
     ) {
         
         if (!ModelState.IsValid) {
             return BadRequest(ModelState);
         }
 
-        var transaction = await context.Transactions.FindAsync(dto.TransactionId);
+        var transaction = await context.Transactions.FindAsync(request.TransactionId);
 
         if (transaction is null) {
             return NotFound();
         }
 
-        if (transaction.PaymentIntentId != dto.PaymentIntentId) {
+        if (transaction.PaymentIntentId != request.PaymentIntentId) {
             return BadRequest();
         }
 
-        var paymentIntent = await stripeService.GetPaymentIntentAsync(dto.PaymentIntentId);
+        var paymentIntent = await stripeService.GetPaymentIntentAsync(request.PaymentIntentId);
 
         transaction.Update(paymentIntent.Status);
         await context.SaveChangesAsync();
@@ -98,10 +89,9 @@ public class TransactionController(
 
         var viewModel = new ConfirmationDetails(
             transaction.Id,
-            transaction.Name,
-            transaction.Email,
+            transaction.CustomerName,
+            transaction.CustomerEmail,
             transaction.Amount,
-            transaction.Currency,
             transaction.Status.ToString(),
             transaction.DateCreated
         );

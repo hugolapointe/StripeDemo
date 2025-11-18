@@ -18,9 +18,6 @@ public class StripeService(
         var options = new PaymentIntentCreateOptions {
             Amount = (long)(amount * 100),
             Currency = currency.ToLowerInvariant(),
-            AutomaticPaymentMethods = new PaymentIntentAutomaticPaymentMethodsOptions {
-                Enabled = true,
-            }
         };
 
         var requestOptions = new RequestOptions { ApiKey = ApiKey };
@@ -29,7 +26,10 @@ public class StripeService(
         return await service.CreateAsync(options, requestOptions);
     }
 
-    public async Task<PaymentIntent> GetPaymentIntentAsync(string paymentIntentId) {
+
+    public async Task<PaymentIntent> GetPaymentIntentAsync(
+        string paymentIntentId) {
+
         var requestOptions = new RequestOptions { ApiKey = ApiKey };
         var service = new PaymentIntentService();
 

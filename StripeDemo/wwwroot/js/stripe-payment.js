@@ -1,5 +1,5 @@
-function initializeStripePayment(publicKey, productId) {
-    // Initialiser Stripe avec la clé publique
+function initializeStripePayment(publicKey, amount) {
+    // ÉTAPE 0. Initialiser et configurer Stripe.js
     const stripe = Stripe(publicKey);
     const elements = stripe.elements();
 
@@ -22,17 +22,17 @@ function initializeStripePayment(publicKey, productId) {
 
         try {
             // ÉTAPE 1 : Créer un PaymentIntent côté serveur
-            // Le serveur crée un PaymentIntent auprès de Stripe et retourne
+            // Le serveur crée un PaymentIntent auprès de Stripe.Net et retourne
             // un clientSecret qui permettra de confirmer le paiement côté client
             const { data } = await axios.post("/transaction/create-payment-intent", {
                 customerName: customerName,
                 customerEmail: customerEmail,
-                productId: productId
+                amount: amount
             });
 
             const { transactionId, clientSecret } = data;
 
-            // ÉTAPE 2 : Confirmer le paiement avec Stripe (côté client)
+            // ÉTAPE 2 : Confirmer le paiement avec Stripe.js (côté client)
             // Stripe traite le paiement de manière sécurisée avec les
             // informations de carte saisies par l'utilisateur
             const result = await stripe.confirmCardPayment(clientSecret, {
@@ -48,19 +48,19 @@ function initializeStripePayment(publicKey, productId) {
 
             // ÉTAPE 3 : Vérifier le paiement côté serveur
             // Le serveur récupère le statut final du PaymentIntent depuis
-            // Stripe et met à jour la transaction en base de données
+            // Stripe.Net et met à jour la transaction en base de données
             await axios.post("/transaction/verify-payment", {
                 transactionId: transactionId,
                 paymentIntentId: result.paymentIntent.id
             });
 
-            // ÉTAPE 4 : Rediriger vers la page de confirmation
+            // ÉTAPE 4 : Rediriger vers la page de confirmation (Succès)
             window.location.href = "/transaction/confirmation/" + transactionId;
 
         } catch (error) {
             // Afficher un message d'erreur générique en cas de problème
             const errorDiv = document.getElementById("card-errors");
-            errorDiv.textContent = "Une erreur est survenue. Veuillez réessayer.";
+            errorDiv.textContent = error.message;
         }
     });
 }

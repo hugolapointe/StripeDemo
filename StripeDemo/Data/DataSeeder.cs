@@ -4,7 +4,8 @@ namespace StripeDemo.Data;
 
 public static class DataSeeder {
 
-    public static void Seed(WebApplication app) {
+    public static void Seed(this WebApplication app) {
+
         using var scope = app.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<StoreContext>();
 

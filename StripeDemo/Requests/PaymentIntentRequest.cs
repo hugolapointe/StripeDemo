@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace StripeDemo.DTOs;
 
-public record CreatePaymentIntentRequest(
+public record PaymentIntentRequest(
 
     [Required]
     string CustomerName,
@@ -12,5 +12,5 @@ public record CreatePaymentIntentRequest(
     string CustomerEmail,
 
     [Required]
-    int ProductId
+    decimal Amount
 );

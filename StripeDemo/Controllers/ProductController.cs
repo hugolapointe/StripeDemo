@@ -7,8 +7,9 @@ namespace StripeDemo.Controllers;
 
 
 [Route("product")]
-public class ProductController(StoreContext context) : Controller {
-
+public class ProductController(
+    StoreContext context
+    ) : Controller {
 
     [HttpGet("details/{id}")]
     public IActionResult Details(int id) {

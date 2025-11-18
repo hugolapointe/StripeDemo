@@ -5,7 +5,6 @@ public record ConfirmationDetails(
     string Name,
     string Email,
     decimal Amount,
-    string Currency,
     string Status,
     DateTime DateCreated
 );

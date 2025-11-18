@@ -19,8 +19,6 @@ builder.Services.AddScoped<IStripeService, StripeService>();
 
 var app = builder.Build();
 
-DataSeeder.Seed(app);
-
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
@@ -36,4 +34,5 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
+app.Seed();
 app.Run();

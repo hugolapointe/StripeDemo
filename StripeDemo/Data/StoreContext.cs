@@ -13,22 +13,5 @@ public class StoreContext(
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) {
         base.OnModelCreating(modelBuilder);
-
-        modelBuilder.Entity<Product>()
-            .Property(p => p.Price)
-            .HasPrecision(18, 2);
-
-        modelBuilder.Entity<Transaction>()
-            .Property(t => t.Amount)
-            .HasPrecision(18, 2);
-
-        modelBuilder.Entity<Transaction>()
-            .HasIndex(t => t.PaymentIntentId);
-
-        modelBuilder.Entity<Transaction>()
-            .HasOne(t => t.Product)
-            .WithMany()
-            .HasForeignKey(t => t.ProductId)
-            .OnDelete(DeleteBehavior.Restrict);
     }
 }

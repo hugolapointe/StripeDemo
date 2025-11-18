@@ -61,7 +61,7 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {
-            initializeStripePayment("@StripeOptions.Value.PublicKey", @Model.Id);
+            initializeStripePayment("@StripeOptions.Value.PublicKey", @Model.Price);
         });
     </script>
 }
